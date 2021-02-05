@@ -52,6 +52,7 @@ Metadata:
       Parameters:
       - pVpcId
       - pVpcCidr
+      - pVpcCidrIPv6
       - pSubnetId
       - pUseElasticIp
       - pEipAllocationId
@@ -127,6 +128,8 @@ Metadata:
         default: VPC ID
       pVpcCidr:
         default: VPC CIDR Block
+      pVpcCidrIPv6:
+        default: VPC IPv6 CIDR Block
       pSubnetId:
         default: Subnet ID for VPN Gateway
 
@@ -212,12 +215,10 @@ Parameters:
   pTunnel1CgwInsideIpAddress:
     Description:  VPN Tunnel 1 Customer Gateway Inside IP Address
     Type: String
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|3[0-8]))$ 
 
   pTunnel1VgwInsideIpAddress:
     Description: VPN Tunnel 1 Virtual Private Gateway Inside IP Address
     Type: String
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|3[0-8]))$ 
 
   pTunnel1VgwBgpAsn:
     Description: VPN Tunnel 1 Virtual Private Gateway BGP ASN
@@ -245,12 +246,10 @@ Parameters:
   pTunnel2CgwInsideIpAddress:
     Description:  VPN Tunnel 2 Customer Gateway Inside IP Address
     Type: String
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|3[0-8]))$ 
 
   pTunnel2VgwInsideIpAddress:
     Description: VPN Tunnel 2 Virtual Private Gateway Inside IP Address
     Type: String
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|3[0-8]))$ 
   
   pTunnel2VgwBgpAsn:
     Description: VPN Tunnel 2 Virtual Private Gateway BGP ASN
@@ -284,7 +283,10 @@ Parameters:
   pVpcCidr:
     Description: VPC CIDR Block
     Type: String
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  pVpcCidrIPv6:
+    Description: VPC CIDR IPv6 Block
+    Type: String
 
   pSubnetId:
     Description: Subnet ID for VPN Gateway
@@ -605,8 +607,8 @@ Resources:
                       dpdaction=restart
                       closeaction=restart
                       left=%defaultroute
-                      leftsubnet=0.0.0.0/0,::/0
-                      rightsubnet=0.0.0.0/0,::/0
+                      leftsubnet=::/0
+                      rightsubnet=::/0
                       leftupdown=/etc/strongswan/ipsec-vti.sh
                       installpolicy=yes
                       compress=no
@@ -662,6 +664,8 @@ Resources:
                 
                 PLUTO_MARK_OUT_ARR=(${!PLUTO_MARK_OUT//// })
                 PLUTO_MARK_IN_ARR=(${!PLUTO_MARK_IN//// })
+                echo ${!PLUTO_MARK_OUT_ARR} >> /etc/strongswan/PLUTO_MARK_OUT_ARR_FILE
+                echo ${!PLUTO_MARK_IN_ARR} >> /etc/strongswan/PLUTO_MARK_IN_ARR_FILE
                 case "$PLUTO_CONNECTION" in
                   AWS-VPC-TUNNEL-1)
                     VTI_INTERFACE=vti1
@@ -676,19 +680,22 @@ Resources:
                 esac
                 
                 case "${!PLUTO_VERB}" in
-                    up-client)
+                    up-client | up-client-v6)
+                        echo ${!PLUTO_ME} >> /etc/strongswan/PLUTO_ME
+                        echo ${!PLUTO_PEER} >> /etc/strongswan/PLUTO_PEER
                         #$IP tunnel add ${!VTI_INTERFACE} mode vti local ${!PLUTO_ME} remote ${!PLUTO_PEER} okey ${!PLUTO_MARK_OUT_ARR[0]} ikey ${!PLUTO_MARK_IN_ARR[0]}
                         $IP link add ${!VTI_INTERFACE} type vti local ${!PLUTO_ME} remote ${!PLUTO_PEER} okey ${!PLUTO_MARK_OUT_ARR[0]} ikey ${!PLUTO_MARK_IN_ARR[0]}
                         sysctl -w net.ipv4.conf.${!VTI_INTERFACE}.disable_policy=1
                         sysctl -w net.ipv4.conf.${!VTI_INTERFACE}.rp_filter=2 || sysctl -w net.ipv4.conf.${!VTI_INTERFACE}.rp_filter=0
-                        $IP addr add ${!VTI_LOCALADDR} remote ${!VTI_REMOTEADDR} dev ${!VTI_INTERFACE}
+                        $IP -6 addr add ${!VTI_LOCALADDR} remote ${!VTI_REMOTEADDR} dev ${!VTI_INTERFACE}
                         $IP link set ${!VTI_INTERFACE} up mtu 1436
                 	      $IPTABLES -t mangle -I FORWARD -o ${!VTI_INTERFACE} -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
                         $IPTABLES -t mangle -I INPUT -p esp -s ${!PLUTO_PEER} -d ${!PLUTO_ME} -j MARK --set-xmark ${!PLUTO_MARK_IN}
+                        $IP -6 route flush table 220
                         $IP route flush table 220
                         #/etc/init.d/bgpd reload || /etc/init.d/quagga force-reload bgpd
                         ;;
-                    down-client)
+                    down-client | down-client-v6)
                         #$IP tunnel del ${!VTI_INTERFACE}
                         $IP link del ${!VTI_INTERFACE}
                 	      $IPTABLES -t mangle -D FORWARD -o ${!VTI_INTERFACE} -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
@@ -733,10 +740,17 @@ Resources:
                 !
                 router bgp ${pLocalBgpAsn}
                   bgp router-id {PRIVATE_IP} 
-                  network ${pVpcCidr}
                   neighbor ${pTunnel1BgpNeighborIpAddress} remote-as ${pTunnel1VgwBgpAsn}
+                  neighbor ${pTunnel1BgpNeighborIpAddress} interface vti1
+                  no neighbor ${pTunnel1BgpNeighborIpAddress} activate
                   neighbor ${pTunnel2BgpNeighborIpAddress} remote-as ${pTunnel2VgwBgpAsn}
+                  neighbor ${pTunnel2BgpNeighborIpAddress} interface vti2
+                  no neighbor ${pTunnel2BgpNeighborIpAddress} activate
                   neighbor ${pTunnel2BgpNeighborIpAddress} route-map RM_LOWER_PRIORITY out
+                  address-family ipv6
+                    network ${pVpcCidrIPv6}
+                    neighbor ${pTunnel1BgpNeighborIpAddress} activate
+                    neighbor ${pTunnel2BgpNeighborIpAddress} activate
                 !
                 route-map RM_LOWER_PRIORITY permit 10
                   set as-path prepend ${pLocalBgpAsn} ${pLocalBgpAsn} ${pLocalBgpAsn}
@@ -758,6 +772,8 @@ Resources:
                 #
                 # For more information, see sysctl.conf(5) and sysctl.d(5).
                 
+                net.ipv6.conf.all.forwarding = 1
+                net.ipv6.conf.all.accept_redirects = 0
                 net.ipv4.ip_forward = 1
                 net.ipv4.conf.all.send_redirects = 0
                 net.ipv4.conf.default.send_redirects = 0
@@ -887,7 +903,9 @@ Resources:
               command: >- 
                 sysctl -w net.ipv4.ip_forward=1 && 
                 sysctl -w net.ipv4.conf.eth0.disable_xfrm=1 && 
-                sysctl -w net.ipv4.conf.eth0.disable_policy=1
+                sysctl -w net.ipv4.conf.eth0.disable_policy=1 &&
+                sysctl -w net.ipv6.conf.all.forwarding=1 && 
+                sysctl -w net.ipv6.conf.eth0.disable_policy=1
             03-enable-start-ntpd:
               command: >- 
                 systemctl enable ntpd && 

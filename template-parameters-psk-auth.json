@@ -21,63 +21,67 @@
   },
   {
     "ParameterKey": "pTunnel1PskSecretName",
-    "ParameterValue": "..."
+    "ParameterValue": "<secret-name-of-tunnel-1>"
   },
   {
     "ParameterKey": "pTunnel1VgwOutsideIpAddress",
-    "ParameterValue": "n.n.n.n"
+    "ParameterValue": "<public-ipv4-addrss-of-tunnel-1>"
   },
   {
     "ParameterKey": "pTunnel1CgwInsideIpAddress",
-    "ParameterValue": "n.n.n.n/30"
+    "ParameterValue": "<inside-on-prem-ipv6-CIDR-of-tunnel-1 (CIDR range + offset 2)/126>"
   },
   {
     "ParameterKey": "pTunnel1VgwInsideIpAddress",
-    "ParameterValue": "n.n.n.n/30"
+    "ParameterValue": "<inside-remote-ipv6-CIDR-of-tunnel-1 (CIDR range + offset 1)/126>"
   },
   {
     "ParameterKey": "pTunnel1VgwBgpAsn",
-    "ParameterValue": "64512"
+    "ParameterValue": "<remote-ASN>"
   },
   {
     "ParameterKey": "pTunnel1BgpNeighborIpAddress",
-    "ParameterValue": "n.n.n.n"
+    "ParameterValue": "<inside-remote-ipv6-address-of-tunnel-1 (CIDR range + offset 1)"
   },
   {
     "ParameterKey": "pTunnel2PskSecretName",
-    "ParameterValue": "..."
+    "ParameterValue": "<secret-name-of-tunnel-1>"
   },
   {
     "ParameterKey": "pTunnel2VgwOutsideIpAddress",
-    "ParameterValue": "n.n.n.n"
+    "ParameterValue": "<public-ipv4-addrss-of-tunnel-2>"
   },
   {
     "ParameterKey": "pTunnel2CgwInsideIpAddress",
-    "ParameterValue": "n.n.n.n/30"
+    "ParameterValue": "<inside-on-prem-ipv6-CIDR-of-tunnel-2 (CIDR range + offset 2)/126>"
   },
   {
     "ParameterKey": "pTunnel2VgwInsideIpAddress",
-    "ParameterValue": "n.n.n.n/30"
+    "ParameterValue": "<inside-remote-ipv6-CIDR-of-tunnel-2 (CIDR range + offset 1)/126>"
   },
   {
     "ParameterKey": "pTunnel2VgwBgpAsn",
-    "ParameterValue": "64512"
+    "ParameterValue": "<remote-ASN>"
   },
   {
     "ParameterKey": "pTunnel2BgpNeighborIpAddress",
-    "ParameterValue": "n.n.n.n"
+    "ParameterValue": "<inside-remote-ipv6-address-of-tunnel-2 (CIDR range + offset 1)"
   },
   {
     "ParameterKey": "pVpcId",
-    "ParameterValue": "vpc-0..."
+    "ParameterValue": "<id-of-on-prem-VPC>"
   },
   {
     "ParameterKey": "pVpcCidr",
-    "ParameterValue": "10.0.0.0/16"
+    "ParameterValue": "<ipv4-CIDR-of-on-prem-VPC>"
+  },
+  {
+    "ParameterKey": "pVpcCidrIPv6",
+    "ParameterValue": "<ipv6-CIDR-of-on-prem-VPC>"
   },
   {
     "ParameterKey": "pSubnetId",
-    "ParameterValue": "subnet-0..."
+    "ParameterValue": "<id-of-the-on-prem-subnet-to-deploy-strongswan-on>"
   },
   {
     "ParameterKey": "pUseElasticIp",
@@ -85,11 +89,11 @@
   },
   {
     "ParameterKey": "pEipAllocationId",
-    "ParameterValue": "eipalloc-0..."
+    "ParameterValue": "<allocation-id-of-the-elastic-ip>"
   },
   {
     "ParameterKey": "pLocalBgpAsn",
-    "ParameterValue": "65000"
+    "ParameterValue": "<on-prem-ASN>"
   },
   {
     "ParameterKey": "pInstanceType",

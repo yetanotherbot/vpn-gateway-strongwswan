@@ -78,6 +78,7 @@ aws cloudformation ${CMD} \
                      --template-body file://./${TEMPLATE} \
                      --parameters file://${1} \
                      --capabilities CAPABILITY_NAMED_IAM \
+                     --disable-rollback \
                      ${REGION} \
                      ${PROFILE}
 
