@@ -376,7 +376,6 @@ Resources:
             Groups:
               - !Ref rInstanceSecurityGroup
             AssociatePublicIpAddress: !Ref pUseElasticIp
-            Ipv6AddressCount: 1
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash -xe
